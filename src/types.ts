@@ -5,30 +5,29 @@ export type TokenResponse = {
 	expires_in: number;
 	refresh_token: string;
 };
+
 export type ImageObject = {
 	url: string;
 	height: number | null;
 	width: number | null;
 };
+
 export type SimplifiedArtistObject = {
-	external_urls: {
-		spotify?: string;
-	};
+	external_urls: { spotify?: string };
 	href: string;
 	id: string;
 	name: string;
 	type: "artist";
 	uri: string;
 };
+
 export type ArtistObject = SimplifiedArtistObject & {
-	followers: {
-		href: string | null;
-		total: number;
-	};
+	followers: { href: string | null; total: number };
 	genres: string[];
 	images: ImageObject[];
 	popularity: number;
 };
+
 export type SavedTrackObject = {
 	added_at: string;
 	track: {
@@ -36,18 +35,14 @@ export type SavedTrackObject = {
 			album_type: "album" | "compilation" | "single";
 			total_tracks: number;
 			available_markets: string[];
-			external_urls: {
-				spotify?: string;
-			};
+			external_urls: { spotify?: string };
 			href: string;
 			id: string;
 			images: ImageObject[];
 			name: string;
 			release_date: string;
 			release_date_precision: "day" | "month" | "year";
-			restrictions?: {
-				reason?: "explicit" | "market" | "product";
-			};
+			restrictions?: { reason?: "explicit" | "market" | "product" };
 			type: "album";
 			uri: string;
 			artists: SimplifiedArtistObject[];
@@ -57,21 +52,13 @@ export type SavedTrackObject = {
 		disc_number: number;
 		duration_ms: number;
 		explicit: boolean;
-		external_ids: {
-			isrc?: string;
-			ean?: string;
-			upc?: string;
-		};
-		external_urls: {
-			spotify?: string;
-		};
+		external_ids: { isrc?: string; ean?: string; upc?: string };
+		external_urls: { spotify?: string };
 		href: string;
 		id: string;
 		is_playable?: boolean;
 		linked_from?: object;
-		restrictions?: {
-			reason?: "explicit" | "market" | "product";
-		};
+		restrictions?: { reason?: "explicit" | "market" | "product" };
 		name: string;
 		popularity: number;
 		preview_url: string | null;
@@ -81,6 +68,7 @@ export type SavedTrackObject = {
 		is_local: boolean;
 	};
 };
+
 export type SavedTracks = {
 	href: string;
 	limit: number;
@@ -89,4 +77,19 @@ export type SavedTracks = {
 	previous: string | null;
 	total: number;
 	items: SavedTrackObject[];
+};
+
+export type CurrentUserProfile = {
+	country?: string;
+	display_name: string | null;
+	email?: string;
+	explicit_content?: { filter_enabled: boolean; filter_locked: boolean };
+	external_urls: { spotify?: string };
+	followers: { href: string | null; total: number };
+	href: string;
+	id: string;
+	images: ImageObject[];
+	product: string;
+	type: "user";
+	uri: string;
 };

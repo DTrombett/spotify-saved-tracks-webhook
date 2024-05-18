@@ -1,6 +1,6 @@
 import { RESTPostAPIWebhookWithTokenJSONBody } from "discord-api-types/v10";
 import { JsonResponse } from "./JsonResponse";
-import type { SavedTracks, TokenResponse } from "./types";
+import type { CurrentUserProfile, SavedTracks, TokenResponse } from "./types";
 
 const server: ExportedHandler<
 	Record<"CLIENT_ID" | "CLIENT_SECRET" | "REDIRECT_URI", string> & {
@@ -10,7 +10,12 @@ const server: ExportedHandler<
 	fetch: async (request, env) => {
 		const url = new URL(request.url);
 
-		console.log(request.cf);
+		console.log({
+			ip: request.headers.get("CF-Connecting-IP"),
+			latitude: request.cf?.latitude,
+			longitude: request.cf?.longitude,
+			host: request.cf?.asOrganization,
+		});
 		if (url.pathname === "/") return new Response("Hello World!");
 		if (url.pathname === "/login")
 			return Response.redirect(
@@ -18,6 +23,7 @@ const server: ExportedHandler<
 					response_type: "code",
 					client_id: env.CLIENT_ID,
 					scope: "user-library-read",
+					// scope: "user-library-read user-read-private user-read-email",
 					redirect_uri: env.REDIRECT_URI,
 					state: crypto.randomUUID(),
 				}).toString()}`,
@@ -49,13 +55,20 @@ const server: ExportedHandler<
 				| TokenResponse
 				| undefined;
 
-			if (body)
-				await Promise.all([
-					env.KV.put("access_token", body.access_token, {
-						expirationTtl: body.expires_in - 1,
-					}),
-					env.KV.put("refresh_token", body.refresh_token),
-				]);
+			if (!body)
+				return new JsonResponse({ error: "Invalid JSON" }, { status: 500 });
+			const data = (await fetch("https://api.spotify.com/v1/me")
+				.then((r) => r.json())
+				.catch(console.error)) as CurrentUserProfile | undefined;
+
+			if (data?.id !== "m910295jo03u0wb2qxnsu5ehi")
+				return new JsonResponse({ error: "Forbidden" }, { status: 403 });
+			await Promise.all([
+				env.KV.put("access_token", body.access_token, {
+					expirationTtl: body.expires_in - 1,
+				}),
+				env.KV.put("refresh_token", body.refresh_token),
+			]);
 			return new Response("No Content", { status: 204 });
 		}
 		return new JsonResponse({ error: "Not Found" }, { status: 404 });
@@ -97,6 +110,7 @@ const server: ExportedHandler<
 				}),
 				env.KV.put("refresh_token", body.refresh_token),
 			]).catch(console.error);
+			console.log("Token refreshed");
 		}
 		const res = await fetch("https://api.spotify.com/v1/me/tracks?limit=5", {
 			headers: {
