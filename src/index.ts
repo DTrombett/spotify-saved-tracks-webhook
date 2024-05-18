@@ -9,6 +9,7 @@ const server: ExportedHandler<
 	fetch: async (request, env) => {
 		const url = new URL(request.url);
 
+		console.log(request.cf);
 		if (url.pathname === "/") return new Response("Hello World!");
 		if (url.pathname === "/login")
 			return Response.redirect(
@@ -153,7 +154,7 @@ const server: ExportedHandler<
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
-						content: `Trombett ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n\n${tracks.join("\n")}`,
+						content: `Trombett ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n${tracks.join("\n")}`,
 					}),
 				},
 			),
