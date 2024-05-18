@@ -57,7 +57,11 @@ const server: ExportedHandler<
 
 			if (!body)
 				return new JsonResponse({ error: "Invalid JSON" }, { status: 500 });
-			const data = (await fetch("https://api.spotify.com/v1/me")
+			const data = (await fetch("https://api.spotify.com/v1/me", {
+				headers: {
+					Authorization: `Bearer ${body.access_token}`,
+				},
+			})
 				.then((r) => r.json())
 				.catch(console.error)) as CurrentUserProfile | undefined;
 
