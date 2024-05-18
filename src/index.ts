@@ -1,3 +1,4 @@
+import { RESTPostAPIWebhookWithTokenJSONBody } from "discord-api-types/v10";
 import { JsonResponse } from "./JsonResponse";
 import type { SavedTracks, TokenResponse } from "./types";
 
@@ -154,8 +155,9 @@ const server: ExportedHandler<
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
-						content: `Trombett ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n${tracks.join("\n")}`,
-					}),
+						content: `<@597505862449496065> ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n${tracks.join("\n")}`,
+						allowed_mentions: { parse: [] },
+					} satisfies RESTPostAPIWebhookWithTokenJSONBody),
 				},
 			),
 		]);
