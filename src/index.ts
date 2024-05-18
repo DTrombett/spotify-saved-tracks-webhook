@@ -24,12 +24,7 @@ const server: ExportedHandler<
 			const code = url.searchParams.get("code");
 			const state = url.searchParams.get("state");
 
-			if (!state || !code)
-				return Response.redirect(
-					`/#${new URLSearchParams({
-						error: "state_mismatch",
-					}).toString()}`,
-				);
+			if (!state || !code) return new JsonResponse({ error: "Invalid state" });
 			const res = (await fetch("https://accounts.spotify.com/api/token", {
 				method: "POST",
 				headers: {
@@ -59,7 +54,7 @@ const server: ExportedHandler<
 					}),
 					env.KV.put("refresh_token", body.refresh_token),
 				]);
-			return new JsonResponse(body);
+			return new Response("No Content", { status: 204 });
 		}
 		return new JsonResponse({ error: "Not Found" }, { status: 404 });
 	},
@@ -113,8 +108,10 @@ const server: ExportedHandler<
 			);
 			return;
 		}
+		console.log(etag);
 		etag = res.headers.get("etag");
 		if (etag) env.KV.put("etag", etag).catch(console.error);
+		console.log(etag);
 		const [data, lastAddedTimestamp] = await Promise.all([
 			res.json() as Promise<SavedTracks>,
 			env.KV.get("last_added_timestamp").then((t) => t && Number(t)),
