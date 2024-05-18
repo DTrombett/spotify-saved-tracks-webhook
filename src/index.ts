@@ -61,6 +61,7 @@ const server: ExportedHandler<
 				.then((r) => r.json())
 				.catch(console.error)) as CurrentUserProfile | undefined;
 
+			console.log(data);
 			if (data?.id !== "m910295jo03u0wb2qxnsu5ehi")
 				return new JsonResponse({ error: "Forbidden" }, { status: 403 });
 			await Promise.all([
@@ -96,13 +97,12 @@ const server: ExportedHandler<
 					client_id: env.CLIENT_ID,
 				}),
 			});
-
-			if (!res.ok) {
-				console.log("Error refreshing token");
-				return;
-			}
 			const body = (await res.json()) as TokenResponse;
 
+			if (!res.ok) {
+				console.log("Error refreshing token", body);
+				return;
+			}
 			accessToken = body.access_token;
 			Promise.all([
 				env.KV.put("access_token", body.access_token, {
