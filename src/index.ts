@@ -59,6 +59,7 @@ const server: ExportedHandler<
 		return new JsonResponse({ error: "Not Found" }, { status: 404 });
 	},
 	scheduled: async (_controller, env) => {
+		// eslint-disable-next-line prefer-const
 		let [accessToken, etag] = await Promise.all([
 			env.KV.get("access_token"),
 			env.KV.get("etag"),
@@ -108,10 +109,15 @@ const server: ExportedHandler<
 			);
 			return;
 		}
-		console.log(etag);
-		etag = res.headers.get("etag");
-		if (etag) env.KV.put("etag", etag).catch(console.error);
-		console.log(etag);
+		const newEtag = res.headers.get("etag");
+
+		if (newEtag) {
+			if (newEtag === etag) {
+				console.log("Skipped (after)");
+				return;
+			}
+			env.KV.put("etag", newEtag).catch(console.error);
+		}
 		const [data, lastAddedTimestamp] = await Promise.all([
 			res.json() as Promise<SavedTracks>,
 			env.KV.get("last_added_timestamp").then((t) => t && Number(t)),
@@ -135,16 +141,23 @@ const server: ExportedHandler<
 			console.log("No new track found");
 			return;
 		}
-		await fetch(
-			"https://canary.discord.com/api/webhooks/1040704954031149157/aR9VmTxkye3IP2K49jxhb7xWHwIShQVTriI6Zec4M3uSzOfrEmtbcE7KNu2OIWKd_y7l?thread_id=1040643054144606248",
-			{
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					content: `Trombett ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n\n${tracks.join("\n")}`,
-				}),
-			},
-		);
+		await Promise.all([
+			data.items[0] &&
+				env.KV.put(
+					"last_added_timestamp",
+					Date.parse(data.items[0].added_at).toString(),
+				),
+			fetch(
+				"https://canary.discord.com/api/webhooks/1040704954031149157/aR9VmTxkye3IP2K49jxhb7xWHwIShQVTriI6Zec4M3uSzOfrEmtbcE7KNu2OIWKd_y7l?thread_id=1040643054144606248",
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						content: `Trombett ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n\n${tracks.join("\n")}`,
+					}),
+				},
+			),
+		]);
 	},
 };
 
