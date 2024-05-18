@@ -3,7 +3,17 @@ import { JsonResponse } from "./JsonResponse";
 import type { CurrentUserProfile, SavedTracks, TokenResponse } from "./types";
 
 const server: ExportedHandler<
-	Record<"CLIENT_ID" | "CLIENT_SECRET" | "REDIRECT_URI", string> & {
+	Record<
+		| "CLIENT_ID"
+		| "CLIENT_SECRET"
+		| "DISCORD_ID"
+		| "REDIRECT_URI"
+		| "SPOTIFY_ID"
+		| "THREAD_ID"
+		| "WEBHOOK_ID"
+		| "WEBHOOK_TOKEN",
+		string
+	> & {
 		KV: KVNamespace;
 	}
 > = {
@@ -16,14 +26,16 @@ const server: ExportedHandler<
 			longitude: request.cf?.longitude,
 			host: request.cf?.asOrganization,
 		});
-		if (url.pathname === "/") return new Response("Hello World!");
+		if (url.pathname === "/")
+			return Response.redirect(
+				`https://open.spotify.com/user/${env.SPOTIFY_ID}`,
+			);
 		if (url.pathname === "/login")
 			return Response.redirect(
 				`https://accounts.spotify.com/authorize?${new URLSearchParams({
 					response_type: "code",
 					client_id: env.CLIENT_ID,
 					scope: "user-library-read",
-					// scope: "user-library-read user-read-private user-read-email",
 					redirect_uri: env.REDIRECT_URI,
 					state: crypto.randomUUID(),
 				}).toString()}`,
@@ -65,8 +77,7 @@ const server: ExportedHandler<
 				.then((r) => r.json())
 				.catch(console.error)) as CurrentUserProfile | undefined;
 
-			console.log(data);
-			if (data?.id !== "m910295jo03u0wb2qxnsu5ehi")
+			if (data?.id !== env.SPOTIFY_ID)
 				return new JsonResponse({ error: "Forbidden" }, { status: 403 });
 			await Promise.all([
 				env.KV.put("access_token", body.access_token, {
@@ -74,7 +85,7 @@ const server: ExportedHandler<
 				}),
 				env.KV.put("refresh_token", body.refresh_token),
 			]);
-			return new Response("No Content", { status: 204 });
+			return new Response(null, { status: 204 });
 		}
 		return new JsonResponse({ error: "Not Found" }, { status: 404 });
 	},
@@ -168,12 +179,12 @@ const server: ExportedHandler<
 					Date.parse(data.items[0].added_at).toString(),
 				),
 			fetch(
-				"https://canary.discord.com/api/webhooks/1040704954031149157/aR9VmTxkye3IP2K49jxhb7xWHwIShQVTriI6Zec4M3uSzOfrEmtbcE7KNu2OIWKd_y7l?thread_id=1040643054144606248",
+				`https://canary.discord.com/api/webhooks/${env.WEBHOOK_ID}/${env.WEBHOOK_TOKEN}?thread_id=${env.THREAD_ID}`,
 				{
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
-						content: `<@597505862449496065> ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n${tracks.join("\n")}`,
+						content: `<@${env.DISCORD_ID}> ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n${tracks.join("\n")}`,
 						allowed_mentions: { parse: [] },
 					} satisfies RESTPostAPIWebhookWithTokenJSONBody),
 				},
