@@ -1,0 +1,13 @@
+name = "spotify-saved-tracks-webhook"
+main = "./dist/index.js"
+compatibility_date = "2023-12-01"
+node_compat = true
+kv_namespaces = [
+  { binding = "KV", id = "a94230524f2045ba954605753f04c692" }
+]
+
+[placement]
+mode = "smart"
+
+[triggers]
+crons = [ "* * * * *" ]

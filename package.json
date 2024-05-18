@@ -1,0 +1,35 @@
+{
+	"name": "spotify-saved-tracks-webhook",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"exports": "./dist/index.js",
+	"main": "./dist/index.js",
+	"author": "DTrombett <maxtrombdt@gmail.com>",
+	"license": "MIT",
+	"scripts": {
+		"build": "tsup",
+		"commands": "npm run build && node --trace-warnings --enable-source-maps ./dist/registerCommands.js",
+		"dev": "concurrently \"tsup --watch\" \"wrangler dev\"",
+		"fix": "eslint --fix '**/*.js'",
+		"lint": "eslint src --fix",
+		"prepare": "npm run build",
+		"prettier": "prettier --write src/**/*.ts",
+		"publish": "wrangler deploy",
+		"test": "tsc --noEmit && eslint src"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20240314.0",
+		"@tsconfig/recommended": "^1.0.3",
+		"@tsconfig/strictest": "^2.0.3",
+		"@typescript-eslint/eslint-plugin": "^7.2.0",
+		"@typescript-eslint/parser": "^7.2.0",
+		"concurrently": "^8.2.2",
+		"dotenv": "^16.4.5",
+		"eslint": "^8.57.0",
+		"prettier": "^3.2.5",
+		"tsup": "^8.0.2",
+		"typescript": "^5.4.2",
+		"wrangler": "^3.34.2"
+	}
+}
