@@ -81,7 +81,7 @@ const server: ExportedHandler<
 				return new JsonResponse({ error: "Forbidden" }, { status: 403 });
 			await Promise.all([
 				env.KV.put("access_token", body.access_token, {
-					expirationTtl: 60,
+					expirationTtl: body.expires_in - 1,
 				}),
 				env.KV.put("refresh_token", body.refresh_token),
 			]);
