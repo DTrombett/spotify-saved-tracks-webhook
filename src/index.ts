@@ -114,6 +114,10 @@ const server: ExportedHandler<
 				}),
 			}).then((res) => res.json())) as TokenResponse;
 
+			if (!("access_token" in body)) {
+				console.log("Error refreshing token", body);
+				return;
+			}
 			accessToken = body.access_token;
 			Promise.all([
 				env.KV.put("access_token", body.access_token, {
