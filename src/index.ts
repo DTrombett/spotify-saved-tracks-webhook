@@ -81,7 +81,7 @@ const server: ExportedHandler<
 				return new JsonResponse({ error: "Forbidden" }, { status: 403 });
 			await Promise.all([
 				env.KV.put("access_token", body.access_token, {
-					expirationTtl: 180,
+					expirationTtl: 60,
 				}),
 				env.KV.put("refresh_token", body.refresh_token),
 			]);
@@ -105,11 +105,13 @@ const server: ExportedHandler<
 			}
 			const body = (await fetch("https://accounts.spotify.com/api/token", {
 				method: "POST",
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+					Authorization: `Basic ${Buffer.from(`${env.CLIENT_ID}:${env.CLIENT_SECRET}`).toString("base64")}`,
+				},
 				body: new URLSearchParams({
 					grant_type: "refresh_token",
 					refresh_token: refreshToken,
-					client_id: env.CLIENT_ID,
 				}),
 			}).then((res) => res.json())) as TokenResponse;
 
