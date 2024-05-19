@@ -79,10 +79,9 @@ const server: ExportedHandler<
 
 			if (data?.id !== env.SPOTIFY_ID)
 				return new JsonResponse({ error: "Forbidden" }, { status: 403 });
-			console.log(body.access_token);
 			await Promise.all([
 				env.KV.put("access_token", body.access_token, {
-					expirationTtl: body.expires_in - 1,
+					expirationTtl: 180,
 				}),
 				env.KV.put("refresh_token", body.refresh_token),
 			]);
