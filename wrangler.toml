@@ -10,4 +10,4 @@ kv_namespaces = [
 mode = "smart"
 
 [triggers]
-crons = [ "* * * * *" ]
+crons = [ "*/10 * * * *" ]
