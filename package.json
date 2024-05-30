@@ -19,7 +19,7 @@
 		"test": "tsc --noEmit && eslint src"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20240314.0",
+		"@cloudflare/workers-types": "^4.20240529.0",
 		"@tsconfig/recommended": "^1.0.3",
 		"@tsconfig/strictest": "^2.0.3",
 		"@typescript-eslint/eslint-plugin": "^7.2.0",
