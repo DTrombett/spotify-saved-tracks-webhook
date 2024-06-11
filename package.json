@@ -23,7 +23,7 @@
 		"@tsconfig/recommended": "^1.0.3",
 		"@tsconfig/strictest": "^2.0.3",
 		"@typescript-eslint/eslint-plugin": "^7.2.0",
-		"@typescript-eslint/parser": "^7.2.0",
+		"@typescript-eslint/parser": "^7.13.0",
 		"concurrently": "^8.2.2",
 		"discord-api-types": "^0.37.84",
 		"dotenv": "^16.4.5",
