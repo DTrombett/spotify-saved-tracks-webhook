@@ -4,6 +4,9 @@ compatibility_date = "2024-09-23"
 kv_namespaces = [
   { binding = "KV", id = "a94230524f2045ba954605753f04c692" }
 ]
+routes = [
+  { pattern = "spotify.trombett.org", custom_domain = true }
+]
 workers_dev = false
 upload_source_maps = true
 
