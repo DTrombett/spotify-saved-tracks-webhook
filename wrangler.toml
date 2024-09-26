@@ -1,7 +1,6 @@
 name = "spotify-saved-tracks-webhook"
 main = "./src/index.ts"
 compatibility_date = "2024-09-23"
-compatibility_flags = ["nodejs_compat"]
 kv_namespaces = [
   { binding = "KV", id = "a94230524f2045ba954605753f04c692" }
 ]
@@ -15,4 +14,4 @@ enabled = true
 mode = "smart"
 
 [triggers]
-crons = [ "0 * * * *" ]
+crons = [ "*/8 * * * *" ]
