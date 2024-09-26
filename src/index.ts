@@ -43,7 +43,7 @@ const server: ExportedHandler<
 				method: "POST",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
-					Authorization: `Basic ${Buffer.from(`${env.CLIENT_ID}:${env.CLIENT_SECRET}`).toString("base64")}`,
+					Authorization: `Basic ${btoa(`${env.CLIENT_ID}:${env.CLIENT_SECRET}`)}`,
 				},
 				body: new URLSearchParams({
 					code,
@@ -101,7 +101,7 @@ const server: ExportedHandler<
 				method: "POST",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
-					Authorization: `Basic ${Buffer.from(`${env.CLIENT_ID}:${env.CLIENT_SECRET}`).toString("base64")}`,
+					Authorization: `Basic ${btoa(`${env.CLIENT_ID}:${env.CLIENT_SECRET}`)}`,
 				},
 				body: new URLSearchParams({
 					grant_type: "refresh_token",
