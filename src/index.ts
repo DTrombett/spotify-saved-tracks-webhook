@@ -120,7 +120,7 @@ const server: ExportedHandler<
 				}),
 				env.KV.put("refresh_token", body.refresh_token),
 			]).catch(console.error);
-			console.log("Token refreshed");
+			console.log("Token refreshed", body);
 		}
 		const res = await fetch("https://api.spotify.com/v1/me/tracks?limit=5", {
 			headers: {
@@ -139,7 +139,7 @@ const server: ExportedHandler<
 
 		if (newEtag) {
 			if (newEtag === etag) {
-				console.log("Skipped (after)");
+				console.log("Skipped (after)", newEtag, etag);
 				return;
 			}
 			env.KV.put("etag", newEtag).catch(console.error);
