@@ -3,34 +3,28 @@
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
-	"exports": "./dist/index.js",
-	"main": "./dist/index.js",
-	"author": "DTrombett <maxtrombdt@gmail.com>",
+	"author": "DTrombett <d@trombett.org>",
 	"license": "MIT",
 	"scripts": {
-		"build": "tsup",
-		"commands": "npm run build && node --trace-warnings --enable-source-maps ./dist/registerCommands.js",
-		"dev": "concurrently \"tsup --watch\" \"wrangler dev\"",
-		"fix": "eslint --fix '**/*.js'",
-		"lint": "eslint src --fix",
-		"prepare": "npm run build",
-		"prettier": "prettier --write src/**/*.ts",
+		"build": "tsc",
+		"dev": "wrangler dev --test-scheduled",
+		"lint": "eslint src --fix && prettier --write src/**/*.ts",
 		"publish": "wrangler deploy",
 		"test": "tsc --noEmit && eslint src"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20240314.0",
-		"@tsconfig/recommended": "^1.0.3",
-		"@tsconfig/strictest": "^2.0.3",
-		"@typescript-eslint/eslint-plugin": "^7.2.0",
-		"@typescript-eslint/parser": "^7.2.0",
-		"concurrently": "^8.2.2",
-		"discord-api-types": "^0.37.84",
-		"dotenv": "^16.4.5",
+		"@cloudflare/workers-types": "^4.20240925.0",
+		"@tsconfig/recommended": "^1.0.7",
+		"@tsconfig/strictest": "^2.0.5",
+		"@typescript-eslint/eslint-plugin": "^8.7.0",
+		"@typescript-eslint/parser": "^8.7.0",
+		"discord-api-types": "^0.37.101",
 		"eslint": "^8.57.0",
-		"prettier": "^3.2.5",
-		"tsup": "^8.0.2",
-		"typescript": "^5.4.2",
-		"wrangler": "^3.34.2"
+		"prettier": "^3.3.3",
+		"typescript": "^5.6.2",
+		"wrangler": "^3.78.10"
+	},
+	"dependencies": {
+		"spotify-saved-tracks-webhook": "file:"
 	}
 }

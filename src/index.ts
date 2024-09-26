@@ -1,4 +1,4 @@
-import { RESTPostAPIWebhookWithTokenJSONBody } from "discord-api-types/v10";
+import type { RESTPostAPIWebhookWithTokenJSONBody } from "discord-api-types/v10";
 import { JsonResponse } from "./JsonResponse";
 import type { CurrentUserProfile, SavedTracks, TokenResponse } from "./types";
 
@@ -20,12 +20,6 @@ const server: ExportedHandler<
 	fetch: async (request, env) => {
 		const url = new URL(request.url);
 
-		console.log({
-			ip: request.headers.get("CF-Connecting-IP"),
-			latitude: request.cf?.latitude,
-			longitude: request.cf?.longitude,
-			host: request.cf?.asOrganization,
-		});
 		if (url.pathname === "/")
 			return Response.redirect(
 				`https://open.spotify.com/user/${env.SPOTIFY_ID}`,
