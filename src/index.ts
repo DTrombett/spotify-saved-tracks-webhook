@@ -77,7 +77,7 @@ const server: ExportedHandler<
 				env.KV.put("access_token", body.access_token, {
 					expirationTtl: body.expires_in - 1,
 				}),
-				env.KV.put("refresh_token", body.refresh_token),
+				env.KV.put("refresh_token", body.refresh_token!),
 			]);
 			return new Response(null, { status: 204 });
 		}
@@ -118,9 +118,8 @@ const server: ExportedHandler<
 				env.KV.put("access_token", body.access_token, {
 					expirationTtl: body.expires_in - 1,
 				}),
-				env.KV.put("refresh_token", body.refresh_token),
+				body.refresh_token && env.KV.put("refresh_token", body.refresh_token),
 			]).catch(console.error);
-			console.log("Token refreshed", body);
 		}
 		const res = await fetch("https://api.spotify.com/v1/me/tracks?limit=5", {
 			headers: {
