@@ -21,3 +21,8 @@ crons = [ "*/8 * * * *" ]
 
 [vars]
 REDIRECT_URI = "https://spotify.trombett.org/callback"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "SPOTIFY_WEBHOOK"
+database_id = "8b50f82c-bf39-4cb2-a0e9-dd12d6da11b4"

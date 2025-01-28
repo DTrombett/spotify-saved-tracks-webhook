@@ -1,12 +1,34 @@
 import type { RESTPostAPIWebhookWithTokenJSONBody } from "discord-api-types/v10";
-import { JsonResponse } from "./JsonResponse";
-import type { CurrentUserProfile, SavedTracks, TokenResponse } from "./types";
+import type {
+	CurrentUserProfile,
+	SavedTracks,
+	TokenResponse,
+	User,
+} from "./types";
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+const importKey = async (base64Key: string) => {
+	const binaryString = atob(base64Key);
+	const { length } = binaryString;
+	const keyData = new Uint8Array(length);
+
+	for (let i = 0; i < length; i++) keyData[i] = binaryString.charCodeAt(i);
+	return crypto.subtle.importKey(
+		"raw",
+		keyData.buffer,
+		{ name: "AES-GCM" },
+		false,
+		["encrypt", "decrypt"],
+	);
+};
 
 const server: ExportedHandler<
 	Record<
 		| "CLIENT_ID"
 		| "CLIENT_SECRET"
-		| "DISCORD_ID"
+		| "PRIVATE_KEY"
 		| "REDIRECT_URI"
 		| "SPOTIFY_ID"
 		| "THREAD_ID"
@@ -14,32 +36,67 @@ const server: ExportedHandler<
 		| "WEBHOOK_TOKEN",
 		string
 	> & {
-		KV: KVNamespace;
+		DB: D1Database;
 	}
 > = {
 	fetch: async (request, env) => {
+		if (request.method !== "GET") return new Response(null, { status: 405 });
 		const url = new URL(request.url);
+		const spotifyIds = env.SPOTIFY_ID.split(",");
 
 		if (url.pathname === "/")
 			return Response.redirect(
-				`https://open.spotify.com/user/${env.SPOTIFY_ID}`,
+				`https://open.spotify.com/user/${spotifyIds[0]}`,
 			);
-		if (url.pathname === "/login")
+		if (url.pathname === "/login") {
+			if (!url.searchParams.has("id"))
+				return new Response("Missing id", { status: 400 });
+			const iv = crypto.getRandomValues(new Uint8Array(12));
+
 			return Response.redirect(
 				`https://accounts.spotify.com/authorize?${new URLSearchParams({
 					response_type: "code",
 					client_id: env.CLIENT_ID,
 					scope: "user-library-read",
 					redirect_uri: env.REDIRECT_URI,
-					state: crypto.randomUUID(),
+					state: `${btoa(
+						String.fromCharCode(
+							...new Uint8Array(
+								await crypto.subtle.encrypt(
+									{
+										name: "AES-GCM",
+										iv: iv.buffer,
+									},
+									await importKey(env.PRIVATE_KEY),
+									encoder.encode(url.searchParams.toString()),
+								),
+							),
+						),
+					)},${btoa(String.fromCharCode(...iv))}`,
 				}).toString()}`,
 			);
+		}
 		if (url.pathname === "/callback") {
 			const code = url.searchParams.get("code");
-			const state = url.searchParams.get("state");
+			const [cipherText, iv] = url.searchParams.get("state")!.split(",");
+			const state = new URLSearchParams(
+				decoder.decode(
+					new Uint8Array(
+						await crypto.subtle.decrypt(
+							{
+								name: "AES-GCM",
+								iv: Uint8Array.from(atob(iv!), (c) => c.charCodeAt(0)).buffer,
+							},
+							await importKey(env.PRIVATE_KEY),
+							Uint8Array.from(atob(cipherText!), (c) => c.charCodeAt(0)),
+						),
+					),
+				),
+			);
 
-			if (!state || !code) return new JsonResponse({ error: "Invalid state" });
-			const res = (await fetch("https://accounts.spotify.com/api/token", {
+			if (!code || !state.get("id"))
+				return new Response("Invalid code", { status: 400 });
+			let res = await fetch("https://accounts.spotify.com/api/token", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/x-www-form-urlencoded",
@@ -50,140 +107,135 @@ const server: ExportedHandler<
 					redirect_uri: env.REDIRECT_URI,
 					grant_type: "authorization_code",
 				}),
-			}).catch(console.error)) as Response | undefined;
+			});
 
-			if (!res?.ok)
-				return (
-					res ??
-					new JsonResponse({ error: "Internal Server Error" }, { status: 500 })
-				);
-			const body = (await res.json().catch(console.error)) as
-				| TokenResponse
-				| undefined;
+			if (!res.ok) return res;
+			const body = await res.json<TokenResponse>();
 
-			if (!body)
-				return new JsonResponse({ error: "Invalid JSON" }, { status: 500 });
-			const data = (await fetch("https://api.spotify.com/v1/me", {
+			res = await fetch("https://api.spotify.com/v1/me", {
 				headers: {
 					Authorization: `Bearer ${body.access_token}`,
 				},
-			})
-				.then((r) => r.json())
-				.catch(console.error)) as CurrentUserProfile | undefined;
+			});
+			if (!res.ok) return res;
+			const data = await res.json<CurrentUserProfile>();
 
-			if (data?.id !== env.SPOTIFY_ID)
-				return new JsonResponse({ error: "Forbidden" }, { status: 403 });
-			await Promise.all([
-				env.KV.put("access_token", body.access_token, {
-					expirationTtl: body.expires_in - 1,
-				}),
-				env.KV.put("refresh_token", body.refresh_token!),
-			]);
-			return new Response(null, { status: 204 });
+			if (!spotifyIds.includes(data.id)) {
+				console.log("New user:", data.id);
+				return new Response(null, { status: 403 });
+			}
+			await env.DB.prepare(
+				`INSERT INTO Users (id, discordId, accessToken, expirationDate, refreshToken)
+				VALUES (?1, ?2, ?3, datetime('now', '+' || ?4 || ' seconds'), ?5)`,
+			)
+				.bind(
+					data.id,
+					state.get("id"),
+					body.access_token,
+					body.expires_in,
+					body.refresh_token,
+				)
+				.run();
+			return new Response("All set!");
 		}
-		return new JsonResponse({ error: "Not Found" }, { status: 404 });
+		return new Response(null, { status: 404 });
 	},
-	scheduled: async (_controller, env) => {
-		// eslint-disable-next-line prefer-const
-		let [accessToken, etag] = await Promise.all([
-			env.KV.get("access_token"),
-			env.KV.get("etag"),
-		]);
+	scheduled: async (_controller, env, ctx) => {
+		const { results } = await env.DB.prepare(
+			`SELECT *
+			FROM Users`,
+		).all<User>();
 
-		if (!accessToken) {
-			const refreshToken = await env.KV.get("refresh_token");
-
-			if (!refreshToken) {
-				console.log("Refresh token missing");
-				return;
-			}
-			const body = (await fetch("https://accounts.spotify.com/api/token", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-					Authorization: `Basic ${btoa(`${env.CLIENT_ID}:${env.CLIENT_SECRET}`)}`,
-				},
-				body: new URLSearchParams({
-					grant_type: "refresh_token",
-					refresh_token: refreshToken,
-				}),
-			}).then((res) => res.json())) as TokenResponse;
-
-			if (!("access_token" in body)) {
-				console.log("Error refreshing token", body);
-				return;
-			}
-			accessToken = body.access_token;
-			Promise.all([
-				env.KV.put("access_token", body.access_token, {
-					expirationTtl: body.expires_in - 1,
-				}),
-				body.refresh_token && env.KV.put("refresh_token", body.refresh_token),
-			]).catch(console.error);
-		}
-		const res = await fetch("https://api.spotify.com/v1/me/tracks?limit=5", {
-			headers: {
-				"If-None-Match": etag ?? "",
-				Authorization: `Bearer ${accessToken}`,
-			},
-		});
-
-		if (!res.ok) {
-			console.log(
-				res.status === 304 ? "Skipped" : "Error loading saved tracks",
-			);
-			return;
-		}
-		const newEtag = res.headers.get("etag");
-
-		if (newEtag) {
-			if (newEtag === etag) {
-				console.log("Skipped (after)", newEtag, etag);
-				return;
-			}
-			env.KV.put("etag", newEtag).catch(console.error);
-		}
-		const [data, lastAddedTimestamp] = await Promise.all([
-			res.json() as Promise<SavedTracks>,
-			env.KV.get("last_added_timestamp").then((t) => t && Number(t)),
-		]);
-
-		if (!lastAddedTimestamp) {
-			if (data.items[0])
-				await env.KV.put(
-					"last_added_timestamp",
-					Date.parse(data.items[0].added_at).toString(),
-				);
-			console.log("Hello World!");
-			return;
-		}
-		const tracks = data.items
-			.filter((t) => Date.parse(t.added_at) > lastAddedTimestamp)
-			.map((t) => t.track.external_urls.spotify)
-			.filter((t): t is string => Boolean(t));
-
-		if (!tracks.length) {
-			console.log("No new track found");
-			return;
-		}
-		await Promise.all([
-			data.items[0] &&
-				env.KV.put(
-					"last_added_timestamp",
-					Date.parse(data.items[0].added_at).toString(),
-				),
-			fetch(
-				`https://canary.discord.com/api/webhooks/${env.WEBHOOK_ID}/${env.WEBHOOK_TOKEN}?thread_id=${env.THREAD_ID}`,
-				{
+		for (const user of results) {
+			if (Date.now() > Date.parse(`${user.expirationDate}Z`)) {
+				if (!user.refreshToken) {
+					console.error("Refresh token missing");
+					continue;
+				}
+				const body = await fetch("https://accounts.spotify.com/api/token", {
 					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						content: `<@${env.DISCORD_ID}> ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n${tracks.join("\n")}`,
-						allowed_mentions: { parse: [] },
-					} satisfies RESTPostAPIWebhookWithTokenJSONBody),
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+						Authorization: `Basic ${btoa(`${env.CLIENT_ID}:${env.CLIENT_SECRET}`)}`,
+					},
+					body: new URLSearchParams({
+						grant_type: "refresh_token",
+						refresh_token: user.refreshToken,
+					}),
+				}).then((res) => res.json<TokenResponse>());
+
+				if (!("access_token" in body)) {
+					console.error("Error refreshing token", body);
+					continue;
+				}
+				user.accessToken = body.access_token;
+				user.refreshToken = body.refresh_token ?? user.refreshToken;
+				ctx.waitUntil(
+					env.DB.prepare(
+						`UPDATE Users SET accessToken = ?1, expirationDate = datetime('now', '+' || ?2 || ' seconds'), refreshToken = ?3 WHERE id = ?4`,
+					)
+						.bind(user.accessToken, user.refreshToken, body.expires_in, user.id)
+						.run(),
+				);
+			}
+			const res = await fetch("https://api.spotify.com/v1/me/tracks?limit=5", {
+				headers: {
+					"If-None-Match": user.etag!,
+					Authorization: `Bearer ${user.accessToken}`,
 				},
-			),
-		]);
+			});
+
+			if (!res.ok) {
+				console.log(
+					res.status === 304 ? "Skipped" : "Error loading saved tracks",
+				);
+				continue;
+			}
+			const newEtag = res.headers.get("etag");
+
+			if (newEtag) {
+				if (newEtag === user.etag) {
+					console.log("Skipped (after)", newEtag, user.etag);
+					continue;
+				}
+				user.etag = newEtag;
+			}
+			const data = await res.json<SavedTracks>();
+			const lastAdded = Date.parse(`${user.lastAdded}Z`);
+			const tracks = data.items
+				.filter((t) => Date.parse(t.added_at) > lastAdded)
+				.map((t) => t.track.external_urls.spotify)
+				.filter((t): t is string => Boolean(t));
+
+			if (!tracks.length) {
+				console.log("No new track found");
+				continue;
+			}
+			await Promise.all([
+				env.DB.prepare(
+					`UPDATE Users SET etag = ?1, lastAdded = ?2 WHERE id = ?3`,
+				)
+					.bind(
+						user.etag,
+						data.items[0]
+							? new Date(data.items[0].added_at).toISOString()
+							: user.lastAdded,
+						user.id,
+					)
+					.run(),
+				fetch(
+					`https://canary.discord.com/api/webhooks/${env.WEBHOOK_ID}/${env.WEBHOOK_TOKEN}?thread_id=${env.THREAD_ID}`,
+					{
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							content: `<@${user.discordId}> ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n${tracks.join("\n")}`,
+							allowed_mentions: { parse: [] },
+						} satisfies RESTPostAPIWebhookWithTokenJSONBody),
+					},
+				),
+			]);
+		}
 	},
 };
 

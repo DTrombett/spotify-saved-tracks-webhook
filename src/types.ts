@@ -93,3 +93,13 @@ export type CurrentUserProfile = {
 	type: "user";
 	uri: string;
 };
+
+export type User = {
+	id: string;
+	discordId: string;
+	accessToken: string;
+	expirationDate: string;
+	refreshToken?: string | null;
+	etag?: string | null;
+	lastAdded: string;
+};
