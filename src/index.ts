@@ -125,7 +125,7 @@ const server: ExportedHandler<
 				return new Response(null, { status: 403 });
 			}
 			await env.DB.prepare(
-				`INSERT INTO Users (id, discordId, accessToken, expirationDate, refreshToken)
+				`INSERT OR REPLACE INTO Users (id, discordId, accessToken, expirationDate, refreshToken)
 				VALUES (?1, ?2, ?3, datetime('now', '+' || ?4 || ' seconds'), ?5)`,
 			)
 				.bind(
