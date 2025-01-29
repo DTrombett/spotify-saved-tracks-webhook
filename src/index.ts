@@ -144,7 +144,7 @@ const server: ExportedHandler<
 		for (const user of results) {
 			if (Date.now() > Date.parse(`${user.expirationDate}Z`)) {
 				if (!user.refreshToken) {
-					console.error("Refresh token missing");
+					console.error(user.id, "Refresh token missing");
 					continue;
 				}
 				const body = await fetch("https://accounts.spotify.com/api/token", {
@@ -160,7 +160,7 @@ const server: ExportedHandler<
 				}).then((res) => res.json<TokenResponse>());
 
 				if (!("access_token" in body)) {
-					console.error("Error refreshing token", body);
+					console.error(user.id, "Error refreshing token", body);
 					continue;
 				}
 				user.accessToken = body.access_token;
@@ -169,7 +169,7 @@ const server: ExportedHandler<
 					env.DB.prepare(
 						`UPDATE Users SET accessToken = ?1, expirationDate = datetime('now', '+' || ?2 || ' seconds'), refreshToken = ?3 WHERE id = ?4`,
 					)
-						.bind(user.accessToken, user.refreshToken, body.expires_in, user.id)
+						.bind(user.accessToken, body.expires_in, user.refreshToken, user.id)
 						.run(),
 				);
 			}
@@ -182,7 +182,9 @@ const server: ExportedHandler<
 
 			if (!res.ok) {
 				console.log(
+					user.id,
 					res.status === 304 ? "Skipped" : "Error loading saved tracks",
+					await res.text(),
 				);
 				continue;
 			}
@@ -190,7 +192,7 @@ const server: ExportedHandler<
 
 			if (newEtag) {
 				if (newEtag === user.etag) {
-					console.log("Skipped (after)", newEtag, user.etag);
+					console.log(user.id, "Skipped (after)", newEtag);
 					continue;
 				}
 				user.etag = newEtag;
@@ -203,7 +205,7 @@ const server: ExportedHandler<
 				.filter((t): t is string => Boolean(t));
 
 			if (!tracks.length) {
-				console.log("No new track found");
+				console.log(user.id, "No new track found");
 				continue;
 			}
 			await Promise.all([
