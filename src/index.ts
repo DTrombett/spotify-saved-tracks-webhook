@@ -170,7 +170,8 @@ const server: ExportedHandler<
 						`UPDATE Users SET accessToken = ?1, expirationDate = datetime('now', '+' || ?2 || ' seconds'), refreshToken = ?3 WHERE id = ?4`,
 					)
 						.bind(user.accessToken, body.expires_in, user.refreshToken, user.id)
-						.run(),
+						.run()
+						.catch(console.error),
 				);
 			}
 			const res = await fetch("https://api.spotify.com/v1/me/tracks?limit=5", {
