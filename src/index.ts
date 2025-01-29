@@ -42,11 +42,10 @@ const server: ExportedHandler<
 	fetch: async (request, env) => {
 		if (request.method !== "GET") return new Response(null, { status: 405 });
 		const url = new URL(request.url);
-		const spotifyIds = env.SPOTIFY_ID.split(",");
 
 		if (url.pathname === "/")
 			return Response.redirect(
-				`https://open.spotify.com/user/${spotifyIds[0]}`,
+				`https://open.spotify.com/user/${env.SPOTIFY_ID}`,
 			);
 		if (url.pathname === "/login") {
 			if (!url.searchParams.has("id"))
@@ -120,10 +119,6 @@ const server: ExportedHandler<
 			if (!res.ok) return res;
 			const data = await res.json<CurrentUserProfile>();
 
-			if (!spotifyIds.includes(data.id)) {
-				console.log("New user:", data.id);
-				return new Response(null, { status: 403 });
-			}
 			await env.DB.prepare(
 				`INSERT OR REPLACE INTO Users (id, discordId, accessToken, expirationDate, refreshToken)
 				VALUES (?1, ?2, ?3, datetime('now', '+' || ?4 || ' seconds'), ?5)`,
