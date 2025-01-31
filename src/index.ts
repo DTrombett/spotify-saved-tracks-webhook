@@ -216,7 +216,7 @@ const server: ExportedHandler<
 					.bind(
 						user.etag,
 						data.items[0]
-							? new Date(data.items[0].added_at).toISOString()
+							? new Date(data.items[0].added_at).toISOString().slice(0, -1)
 							: user.lastAdded,
 						user.id,
 					)
