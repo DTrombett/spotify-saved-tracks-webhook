@@ -13,16 +13,16 @@
 		"test": "tsc --noEmit && eslint src"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20250124.3",
+		"@cloudflare/workers-types": "^4.20250129.0",
 		"@tsconfig/recommended": "^1.0.8",
 		"@tsconfig/strictest": "^2.0.5",
 		"@typescript-eslint/eslint-plugin": "^8.22.0",
 		"@typescript-eslint/parser": "^8.22.0",
-		"discord-api-types": "^0.37.118",
+		"discord-api-types": "^0.37.119",
 		"eslint": "^8.57.1",
 		"prettier": "^3.4.2",
 		"typescript": "^5.7.3",
-		"wrangler": "^3.106.0"
+		"wrangler": "^3.107.2"
 	},
 	"dependencies": {
 		"spotify-saved-tracks-webhook": "file:"
