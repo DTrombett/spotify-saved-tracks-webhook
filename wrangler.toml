@@ -14,7 +14,7 @@ enabled = true
 mode = "smart"
 
 [triggers]
-crons = [ "*/8 * * * *" ]
+crons = [ "* * * * *" ]
 
 [vars]
 REDIRECT_URI = "https://spotify.trombett.org/callback"
