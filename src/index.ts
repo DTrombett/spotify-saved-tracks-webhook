@@ -205,11 +205,7 @@ const server: ExportedHandler<
 				.map((t) => t.track.external_urls.spotify)
 				.filter((t): t is string => Boolean(t));
 
-			if (!tracks.length) {
-				console.log(user.id, "No new track found");
-				continue;
-			}
-			await Promise.all([
+			ctx.waitUntil(
 				env.DB.prepare(
 					`UPDATE Users SET etag = ?1, lastAdded = ?2 WHERE id = ?3`,
 				)
@@ -221,18 +217,22 @@ const server: ExportedHandler<
 						user.id,
 					)
 					.run(),
-				fetch(
-					`https://canary.discord.com/api/webhooks/${env.WEBHOOK_ID}/${env.WEBHOOK_TOKEN}?thread_id=${env.THREAD_ID}`,
-					{
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({
-							content: `<@${user.discordId}> ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n${tracks.join("\n")}`,
-							allowed_mentions: { parse: [] },
-						} satisfies RESTPostAPIWebhookWithTokenJSONBody),
-					},
-				),
-			]);
+			);
+			if (!tracks.length) {
+				console.log(user.id, "No new track found");
+				continue;
+			}
+			await fetch(
+				`https://canary.discord.com/api/webhooks/${env.WEBHOOK_ID}/${env.WEBHOOK_TOKEN}?thread_id=${env.THREAD_ID}`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						content: `<@${user.discordId}> ha salvato ${tracks.length} nuov${tracks.length === 1 ? "a" : "e"} canzon${tracks.length === 1 ? "e" : "i"} su Spotify!\n${tracks.join("\n")}`,
+						allowed_mentions: { parse: [] },
+					} satisfies RESTPostAPIWebhookWithTokenJSONBody),
+				},
+			);
 		}
 	},
 };
