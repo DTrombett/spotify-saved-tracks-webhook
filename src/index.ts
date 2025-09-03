@@ -223,7 +223,7 @@ const server: ExportedHandler<
 				continue;
 			}
 			await fetch(
-				`https://canary.discord.com/api/webhooks/${env.WEBHOOK_ID}/${env.WEBHOOK_TOKEN}?thread_id=${env.THREAD_ID}`,
+				`https://canary.discord.com/api/webhooks/${env.WEBHOOK_ID}/${env.WEBHOOK_TOKEN}?thread_id=${env.THREAD_ID}&wait=true`,
 				{
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
