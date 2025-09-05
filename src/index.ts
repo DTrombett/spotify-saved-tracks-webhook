@@ -232,7 +232,7 @@ const server: ExportedHandler<
 						allowed_mentions: { parse: [] },
 					} satisfies RESTPostAPIWebhookWithTokenJSONBody),
 				},
-			);
+			).catch(console.error);
 		}
 	},
 };
